@@ -18,8 +18,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject API Key
-        run: sed -i 's/__GOOGLE_MAPS_API_KEY__/${{ secrets.GOOGLE_MAPS_KEY }}/g' index.html
+      - name: Inject secrets
+        run: |
+          sed -i 's/__GOOGLE_MAPS_API_KEY__/${{ secrets.GOOGLE_MAPS_KEY }}/g' index.html
+          sed -i 's/__APP_PASSWORD__/${{ secrets.APP_PASSWORD }}/g' index.html
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
