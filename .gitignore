@@ -1,0 +1,4 @@
+PLAN.MD
+node_modules/
+dist/
+.env

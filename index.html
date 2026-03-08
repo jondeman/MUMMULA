@@ -1,0 +1,1218 @@
+<!DOCTYPE html>
+<html lang="fi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Asuntosijainnin Etäisyysvertailu</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🏠</text></svg>">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-color: #0a0a0f;
+            --bg-gradient: radial-gradient(circle at center, #111127 0%, #0a0a0f 100%);
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.1);
+            --text-main: #F8FAFC;
+            --text-muted: rgba(255, 255, 255, 0.5);
+            --color-green: #10B981;
+            --color-orange: #F59E0B;
+            --color-red: #EF4444;
+            --color-accent: #818CF8;
+            --font-sans: 'Inter', sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-color);
+            background-image: var(--bg-gradient);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow-x: hidden;
+        }
+
+        /* Header */
+        header {
+            text-align: center;
+            padding: 2rem 1rem 1rem;
+        }
+
+        h1 {
+            font-weight: 600;
+            letter-spacing: -0.02em;
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+            background: linear-gradient(to right, #fff, var(--color-accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .tagline {
+            color: var(--text-muted);
+            font-size: 1rem;
+        }
+
+        /* Search */
+        .search-container {
+            max-width: 700px;
+            margin: 0 auto 2rem;
+            padding: 0 1rem;
+            width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        .search-box {
+            display: flex;
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 0.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            transition: box-shadow 0.3s ease, border-color 0.3s ease;
+        }
+
+        .search-box:focus-within {
+            border-color: var(--color-accent);
+            box-shadow: 0 8px 32px rgba(129, 140, 248, 0.2);
+        }
+
+        .search-icon {
+            padding: 0.75rem;
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #address-input {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-main);
+            font-size: 1.1rem;
+            font-family: var(--font-sans);
+            padding: 0.75rem 0.5rem;
+            outline: none;
+        }
+
+        #address-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .search-btn {
+            background: linear-gradient(135deg, #6366f1, #8b5cf6);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            padding: 0 1.5rem;
+            font-weight: 600;
+            font-size: 1rem;
+            cursor: pointer;
+            transition: opacity 0.2s, transform 0.2s;
+        }
+
+        .search-btn:hover {
+            opacity: 0.9;
+        }
+        
+        .search-btn:active {
+            transform: scale(0.98);
+        }
+
+        /* Main Layout */
+        .main-content {
+            display: flex;
+            flex: 1;
+            padding: 0 2rem 6rem;
+            gap: 2rem;
+            max-width: 1600px;
+            margin: 0 auto;
+            width: 100%;
+        }
+
+        /* Results Panel */
+        .results-panel {
+            flex: 1;
+            max-width: 500px;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+            overflow-y: auto;
+            padding-right: 0.5rem;
+        }
+
+        /* Map Panel */
+        .map-panel {
+            flex: 2;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid var(--card-border);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            min-height: 500px;
+            position: relative;
+        }
+
+        #map {
+            width: 100%;
+            height: 100%;
+            background: #111;
+        }
+
+        /* Result Cards */
+        .result-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 1.25rem;
+            position: relative;
+            overflow: hidden;
+            opacity: 0;
+            transform: translateY(20px);
+            animation: slideUp 0.5s forwards;
+        }
+
+        @keyframes slideUp {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+
+        .person-name {
+            font-weight: 600;
+            font-size: 1.1rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .person-address {
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.25rem;
+        }
+        
+        .person-address:hover {
+            color: var(--text-main);
+        }
+
+        .route-row {
+            margin-bottom: 1rem;
+        }
+
+        .route-row:last-child {
+            margin-bottom: 0;
+        }
+
+        .route-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            margin-bottom: 0.5rem;
+        }
+
+        .route-type {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .route-time {
+            font-family: var(--font-mono);
+            font-size: 1.5rem;
+            font-weight: 500;
+            display: flex;
+            align-items: baseline;
+            gap: 0.25rem;
+        }
+
+        .route-time span {
+            font-size: 0.9rem;
+            color: var(--text-muted);
+            font-family: var(--font-sans);
+        }
+
+        .route-dist {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-left: 0.5rem;
+        }
+
+        .progress-container {
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 0.5rem;
+            display: flex;
+        }
+
+        .progress-bar {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 1s cubic-bezier(0.1, 0.8, 0.2, 1);
+            width: 0%;
+        }
+
+        .route-details {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .transit-steps {
+            color: var(--text-muted);
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+        }
+
+        .status-badge {
+            padding: 0.15rem 0.5rem;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.1);
+        }
+
+        /* Summary Bar */
+        .summary-bar {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(100px);
+            background: var(--card-bg);
+            backdrop-filter: blur(20px);
+            border: 1px solid var(--card-border);
+            border-radius: 100px;
+            padding: 1rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            opacity: 0;
+            transition: all 0.5s cubic-bezier(0.1, 0.8, 0.2, 1);
+        }
+
+        .summary-bar.visible {
+            transform: translateX(-50%) translateY(0);
+            opacity: 1;
+        }
+
+        .summary-stat {
+            font-size: 1.1rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .summary-divider {
+            width: 1px;
+            height: 24px;
+            background: var(--card-border);
+        }
+
+        .summary-total {
+            font-weight: 700;
+            color: var(--color-accent);
+        }
+
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(5px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .modal {
+            background: #111118;
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 2rem;
+            max-width: 400px;
+            width: 90%;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+            transform: scale(0.9);
+            transition: transform 0.3s;
+        }
+
+        .modal-overlay.active .modal {
+            transform: scale(1);
+        }
+
+        .modal h2 {
+            margin-bottom: 1rem;
+            font-size: 1.5rem;
+        }
+
+        .modal p {
+            color: var(--text-muted);
+            margin-bottom: 1.5rem;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .modal input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--card-border);
+            color: white;
+            padding: 0.75rem;
+            border-radius: 8px;
+            margin-bottom: 1rem;
+            font-family: var(--font-mono);
+        }
+
+        .modal button {
+            width: 100%;
+            background: var(--color-accent);
+            color: white;
+            border: none;
+            padding: 0.75rem;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        /* Loading & Errors */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(10, 10, 15, 0.7);
+            backdrop-filter: blur(4px);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .loading-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--color-accent);
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .toast {
+            position: fixed;
+            top: 2rem;
+            left: 50%;
+            transform: translateX(-50%) translateY(-100px);
+            background: var(--color-red);
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 8px;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+            z-index: 2000;
+            transition: transform 0.3s cubic-bezier(0.1, 0.8, 0.2, 1);
+        }
+
+        .toast.visible {
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Responsive */
+        @media (max-width: 1024px) {
+            .main-content {
+                flex-direction: column;
+                padding: 0 1rem 6rem;
+            }
+            .results-panel {
+                max-width: 100%;
+                overflow: visible;
+            }
+            .map-panel {
+                min-height: 400px;
+                order: -1;
+            }
+            .summary-bar {
+                width: 90%;
+                justify-content: space-between;
+                padding: 1rem;
+                gap: 1rem;
+            }
+        }
+        
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255,255,255,0.05) 25%, rgba(255,255,255,0.1) 50%, rgba(255,255,255,0.05) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s infinite;
+            border-radius: 4px;
+        }
+        
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+    </style>
+</head>
+<body>
+
+    <header>
+        <h1>Asuntosijainnin Etäisyysvertailu</h1>
+        <p class="tagline">Tarkista matka-ajat lasten koteihin sekunneissa</p>
+    </header>
+
+    <div class="search-container">
+        <div class="search-box">
+            <div class="search-icon">🔍</div>
+            <input type="text" id="address-input" placeholder="Syötä tarkasteltava osoite..." autocomplete="off">
+            <button class="search-btn" id="search-btn">HAE</button>
+        </div>
+    </div>
+
+    <main class="main-content">
+        <div class="results-panel" id="results-panel">
+            <!-- Results will be injected here -->
+            <div style="text-align: center; color: var(--text-muted); padding: 2rem; font-style: italic;">
+                Syötä osoite yllä nähdäksesi matka-ajat.
+            </div>
+        </div>
+        <div class="map-panel">
+            <div id="map"></div>
+            <div class="loading-overlay" id="map-loading">
+                <div class="spinner"></div>
+                <div>Haetaan reittejä...</div>
+            </div>
+        </div>
+    </main>
+
+    <div class="summary-bar" id="summary-bar">
+        <div class="summary-stat" id="summary-drive">🚗 0/4 OK</div>
+        <div class="summary-divider"></div>
+        <div class="summary-stat" id="summary-transit">🚌 0/4 OK</div>
+        <div class="summary-divider"></div>
+        <div class="summary-total" id="summary-total">🟢 Erinomainen sijainti!</div>
+    </div>
+
+    <div class="modal-overlay active" id="api-modal">
+        <div class="modal">
+            <h2>🔒 Kirjaudu sisään</h2>
+            <p>Syötä salasana käyttääksesi sovellusta.</p>
+            <input type="password" id="password-input" placeholder="Salasana..." autofocus>
+            <button id="save-api-key">Kirjaudu</button>
+            <div id="password-error" style="color: var(--color-red); font-size: 0.85rem; margin-top: 0.5rem; display: none;">Väärä salasana.</div>
+        </div>
+    </div>
+
+    <div class="toast" id="toast">Virhe tapahtui</div>
+
+    <script>
+        // --- CONFIGURATION ---
+        const DESTINATIONS = [
+            {
+                name: "Joona",
+                address: "Mikkolantie 8, Helsinki",
+                lat: 60.2351839, lng: 24.9714064,
+                emoji: "🔵",
+                color: "#3B82F6",
+                thresholds: { drive: 30, transit: 60 }
+            },
+            {
+                name: "Henna",
+                address: "Sateenkaari 3, Espoo",
+                lat: 60.1703559, lng: 24.8130775,
+                emoji: "🟢",
+                color: "#10B981",
+                thresholds: { drive: 20, transit: 45 }
+            },
+            {
+                name: "Anu",
+                address: "Vanhan-Mankkaan tie 8, Espoo",
+                lat: 60.1899203, lng: 24.7774968,
+                emoji: "🟡",
+                color: "#F59E0B",
+                thresholds: { drive: 20, transit: 45 }
+            },
+            {
+                name: "Jaakko",
+                address: "Telkkäkuja 3, Helsinki",
+                lat: 60.1645641, lng: 24.8572568,
+                emoji: "🔴",
+                color: "#EF4444",
+                thresholds: { drive: 30, transit: 60 }
+            }
+        ];
+
+        const MAP_STYLE = [
+            { elementType: "geometry", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.stroke", stylers: [{ color: "#242f3e" }] },
+            { elementType: "labels.text.fill", stylers: [{ color: "#746855" }] },
+            {
+                featureType: "administrative.locality",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }]
+            },
+            {
+                featureType: "poi",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }]
+            },
+            {
+                featureType: "poi.park",
+                elementType: "geometry",
+                stylers: [{ color: "#263c3f" }]
+            },
+            {
+                featureType: "poi.park",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#6b9a76" }]
+            },
+            {
+                featureType: "road",
+                elementType: "geometry",
+                stylers: [{ color: "#38414e" }]
+            },
+            {
+                featureType: "road",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#212a37" }]
+            },
+            {
+                featureType: "road",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#9ca5b3" }]
+            },
+            {
+                featureType: "road.highway",
+                elementType: "geometry",
+                stylers: [{ color: "#746855" }]
+            },
+            {
+                featureType: "road.highway",
+                elementType: "geometry.stroke",
+                stylers: [{ color: "#1f2835" }]
+            },
+            {
+                featureType: "road.highway",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#f3d19c" }]
+            },
+            {
+                featureType: "transit",
+                elementType: "geometry",
+                stylers: [{ color: "#2f3948" }]
+            },
+            {
+                featureType: "transit.station",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#d59563" }]
+            },
+            {
+                featureType: "water",
+                elementType: "geometry",
+                stylers: [{ color: "#17263c" }]
+            },
+            {
+                featureType: "water",
+                elementType: "labels.text.fill",
+                stylers: [{ color: "#515c6d" }]
+            },
+            {
+                featureType: "water",
+                elementType: "labels.text.stroke",
+                stylers: [{ color: "#17263c" }]
+            }
+        ];
+
+        // --- STATE ---
+        let map;
+        let autocomplete;
+        const apiKey = 'AIzaSyATt67tAhKuT7ihxB2qexuQoL-fLBKLpJw';
+        const APP_PASSWORD = 'mummula';
+        let markers = [];
+        let polylines = [];
+        let originMarker = null;
+
+        // --- INITIALIZATION ---
+        function checkApiKey() {
+            if (sessionStorage.getItem('auth') === '1') {
+                document.getElementById('api-modal').classList.remove('active');
+                loadGoogleMaps();
+            }
+            // modal stays active (has class 'active' in HTML)
+        }
+
+        function tryPassword() {
+            const input = document.getElementById('password-input').value.trim();
+            if (input === APP_PASSWORD) {
+                sessionStorage.setItem('auth', '1');
+                document.getElementById('api-modal').classList.remove('active');
+                loadGoogleMaps();
+            } else {
+                document.getElementById('password-error').style.display = 'block';
+                document.getElementById('password-input').value = '';
+                document.getElementById('password-input').focus();
+            }
+        }
+
+        document.getElementById('save-api-key').addEventListener('click', tryPassword);
+        document.getElementById('password-input').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') tryPassword();
+        });
+
+        function loadGoogleMaps() {
+            const script = document.createElement('script');
+            script.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places,geometry&callback=initApp`;
+            script.async = true;
+            script.defer = true;
+            script.onerror = () => showToast('Google Mapsin lataus epäonnistui. Tarkista API-avain.');
+            document.head.appendChild(script);
+        }
+
+        window.initApp = function() {
+            // Init Map
+            map = new google.maps.Map(document.getElementById('map'), {
+                center: { lat: 60.20, lng: 24.93 }, // Helsinki center
+                zoom: 11,
+                styles: MAP_STYLE,
+                disableDefaultUI: true,
+                zoomControl: true
+            });
+
+            // Add destination markers
+            DESTINATIONS.forEach(dest => {
+                const marker = new google.maps.Marker({
+                    position: { lat: dest.lat, lng: dest.lng },
+                    map: map,
+                    icon: createCustomMarker(dest.color, dest.name.charAt(0)),
+                    title: dest.name
+                });
+                markers.push(marker);
+            });
+
+            // Init Autocomplete
+            const input = document.getElementById('address-input');
+            autocomplete = new google.maps.places.Autocomplete(input, {
+                componentRestrictions: { country: 'fi' },
+                fields: ['geometry', 'name', 'formatted_address']
+            });
+
+            autocomplete.addListener('place_changed', onPlaceChanged);
+            
+            document.getElementById('search-btn').addEventListener('click', () => {
+                const place = autocomplete.getPlace();
+                if (place && place.geometry) {
+                    onPlaceChanged();
+                } else {
+                    // Geocode the typed text
+                    geocodeAndSearch(input.value.trim());
+                }
+            });
+
+            input.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    document.getElementById('search-btn').click();
+                }
+            });
+        };
+
+        function createCustomMarker(color, letter) {
+            const canvas = document.createElement('canvas');
+            canvas.width = 40;
+            canvas.height = 40;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.beginPath();
+            ctx.arc(20, 20, 16, 0, 2 * Math.PI);
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+            ctx.lineWidth = 2;
+            ctx.stroke();
+            
+            ctx.fillStyle = 'white';
+            ctx.font = 'bold 16px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(letter, 20, 20);
+            
+            return canvas.toDataURL();
+        }
+
+        function createOriginMarker() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 48;
+            canvas.height = 48;
+            const ctx = canvas.getContext('2d');
+            
+            ctx.beginPath();
+            ctx.arc(24, 24, 20, 0, 2 * Math.PI);
+            ctx.fillStyle = '#FBBF24'; // Gold
+            ctx.fill();
+            ctx.strokeStyle = 'white';
+            ctx.lineWidth = 3;
+            ctx.stroke();
+            
+            ctx.fillStyle = '#000';
+            ctx.font = '24px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('★', 24, 24);
+            
+            return canvas.toDataURL();
+        }
+
+        // --- CORE LOGIC ---
+        async function onPlaceChangedDemo(addressText) {
+            const origin = {
+                lat: 60.17,
+                lng: 24.94,
+                address: addressText
+            };
+
+            // UI State
+            document.getElementById('map-loading').classList.add('active');
+            document.getElementById('summary-bar').classList.remove('visible');
+            renderSkeletonCards();
+
+            try {
+                // Simulate network delay
+                await new Promise(r => setTimeout(r, 1500));
+                
+                // Generate mock results
+                const mockResults = DESTINATIONS.map(dest => {
+                    const driveMin = Math.floor(Math.random() * 40) + 10;
+                    const transitMin = Math.floor(Math.random() * 60) + 20;
+                    
+                    return {
+                        dest,
+                        drive: {
+                            available: true,
+                            durationMin: driveMin,
+                            distanceKm: (driveMin * 0.6).toFixed(1),
+                            polyline: null
+                        },
+                        transit: {
+                            available: true,
+                            durationMin: transitMin,
+                            distanceKm: (transitMin * 0.4).toFixed(1),
+                            transitSteps: [
+                                { type: 'BUS', name: '66' },
+                                { type: 'SUBWAY', name: 'M1' }
+                            ],
+                            polyline: null
+                        }
+                    };
+                });
+                
+                renderResults(mockResults, origin);
+                updateSummary(mockResults);
+            } catch (error) {
+                console.error(error);
+                showToast('Virhe reittien haussa.');
+            } finally {
+                document.getElementById('map-loading').classList.remove('active');
+            }
+        }
+
+        async function geocodeAndSearch(addressText) {
+            if (!addressText) {
+                showToast('Syötä osoite ensin.');
+                return;
+            }
+            const geocoder = new google.maps.Geocoder();
+            geocoder.geocode({ address: addressText, region: 'fi' }, (results, status) => {
+                if (status === 'OK' && results[0]) {
+                    const origin = {
+                        lat: results[0].geometry.location.lat(),
+                        lng: results[0].geometry.location.lng(),
+                        address: results[0].formatted_address
+                    };
+                    runSearch(origin);
+                } else {
+                    showToast('Osoitetta ei löytynyt. Tarkista kirjoitus.');
+                }
+            });
+        }
+
+        async function onPlaceChanged() {
+            const place = autocomplete.getPlace();
+
+            if (!place || !place.geometry) {
+                geocodeAndSearch(document.getElementById('address-input').value.trim());
+                return;
+            }
+
+            const origin = {
+                lat: place.geometry.location.lat(),
+                lng: place.geometry.location.lng(),
+                address: place.formatted_address || place.name
+            };
+            runSearch(origin);
+        }
+
+        async function runSearch(origin) {
+            // Update Map
+            if (originMarker) originMarker.setMap(null);
+            originMarker = new google.maps.Marker({
+                position: origin,
+                map: map,
+                icon: createOriginMarker(),
+                title: 'Haettu osoite',
+                zIndex: 100
+            });
+
+            clearPolylines();
+
+            const bounds = new google.maps.LatLngBounds();
+            bounds.extend(origin);
+            DESTINATIONS.forEach(d => bounds.extend({ lat: d.lat, lng: d.lng }));
+            map.fitBounds(bounds, 50);
+
+            // UI State
+            document.getElementById('map-loading').classList.add('active');
+            document.getElementById('summary-bar').classList.remove('visible');
+            renderSkeletonCards();
+
+            try {
+                const results = await fetchAllRoutes(origin);
+                renderResults(results, origin);
+                drawPolylines(results, origin);
+                updateSummary(results);
+            } catch (error) {
+                console.error(error);
+                showToast('Virhe reittien haussa. Yritä uudelleen.');
+                document.getElementById('results-panel').innerHTML =
+                    '<div style="text-align:center; padding:2rem; color:var(--color-red)">Reittien haku epäonnistui.</div>';
+            } finally {
+                document.getElementById('map-loading').classList.remove('active');
+            }
+        }
+
+        async function fetchAllRoutes(origin) {
+            const promises = [];
+            
+            DESTINATIONS.forEach(dest => {
+                promises.push(fetchRoute(origin, dest, 'DRIVE').then(res => ({ dest, mode: 'DRIVE', data: res })));
+                promises.push(fetchRoute(origin, dest, 'TRANSIT').then(res => ({ dest, mode: 'TRANSIT', data: res })));
+            });
+
+            const responses = await Promise.all(promises);
+            
+            // Group by destination
+            const results = DESTINATIONS.map(dest => {
+                const driveRes = responses.find(r => r.dest.name === dest.name && r.mode === 'DRIVE');
+                const transitRes = responses.find(r => r.dest.name === dest.name && r.mode === 'TRANSIT');
+                
+                return {
+                    dest,
+                    drive: parseRouteResponse(driveRes.data, 'DRIVE'),
+                    transit: parseRouteResponse(transitRes.data, 'TRANSIT')
+                };
+            });
+            
+            return results;
+        }
+
+        async function fetchRoute(origin, dest, mode) {
+            const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+            const body = {
+                origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
+                destination: { location: { latLng: { latitude: dest.lat, longitude: dest.lng } } },
+                travelMode: mode,
+                ...(mode === 'DRIVE' 
+                    ? { routingPreference: 'TRAFFIC_AWARE' } 
+                    : { transitPreferences: { routingPreference: 'LESS_WALKING' } })
+            };
+
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Goog-Api-Key': apiKey,
+                    'X-Goog-FieldMask': 'routes.duration,routes.distanceMeters,routes.legs.steps.transitDetails,routes.polyline.encodedPolyline'
+                },
+                body: JSON.stringify(body)
+            });
+
+            if (!response.ok) {
+                throw new Error(`API Error: ${response.status}`);
+            }
+
+            return response.json();
+        }
+
+        function parseRouteResponse(data, mode) {
+            if (!data.routes || data.routes.length === 0) {
+                return { available: false };
+            }
+
+            const route = data.routes[0];
+            const durationS = parseInt(route.duration.replace('s', ''));
+            const durationMin = Math.round(durationS / 60);
+            const distanceKm = (route.distanceMeters / 1000).toFixed(1);
+            
+            let transitSteps = [];
+            if (mode === 'TRANSIT' && route.legs && route.legs[0].steps) {
+                route.legs[0].steps.forEach(step => {
+                    if (step.transitDetails) {
+                        const type = step.transitDetails.transitLine.vehicle?.type || 'BUS';
+                        const name = step.transitDetails.transitLine.name || step.transitDetails.transitLine.nameShort || '';
+                        transitSteps.push({ type, name });
+                    } else {
+                        // It's a walk step, but we only want to show it if it's significant or we want to simplify
+                        // Let's just add walk if we want
+                    }
+                });
+            }
+
+            return {
+                available: true,
+                durationMin,
+                distanceKm,
+                transitSteps,
+                polyline: route.polyline?.encodedPolyline
+            };
+        }
+
+        function evaluateStatus(duration, threshold) {
+            const ratio = duration / threshold;
+            if (ratio <= 0.70) return { status: 'OK', color: '#10B981', text: '✅ OK', percent: Math.min(100, (duration / threshold) * 100) };
+            if (ratio <= 1.00) return { status: 'WARN', color: '#F59E0B', text: '⚠️ Raja', percent: Math.min(100, (duration / threshold) * 100) };
+            return { status: 'FAIL', color: '#EF4444', text: '❌ Yli', percent: 100 };
+        }
+
+        // --- RENDERING ---
+        function renderSkeletonCards() {
+            const panel = document.getElementById('results-panel');
+            panel.innerHTML = '';
+            for (let i = 0; i < 4; i++) {
+                panel.innerHTML += `
+                    <div class="result-card" style="animation-delay: ${i * 0.1}s">
+                        <div class="card-header">
+                            <div class="skeleton" style="width: 120px; height: 24px;"></div>
+                            <div class="skeleton" style="width: 80px; height: 16px;"></div>
+                        </div>
+                        <div class="skeleton" style="width: 100%; height: 60px; margin-bottom: 1rem;"></div>
+                        <div class="skeleton" style="width: 100%; height: 60px;"></div>
+                    </div>
+                `;
+            }
+        }
+
+        function renderResults(results, origin) {
+            const panel = document.getElementById('results-panel');
+            panel.innerHTML = '';
+
+            results.forEach((res, index) => {
+                const dest = res.dest;
+                
+                // Drive
+                let driveHtml = '';
+                if (res.drive.available) {
+                    const evalDrive = evaluateStatus(res.drive.durationMin, dest.thresholds.drive);
+                    driveHtml = `
+                        <div class="route-row">
+                            <div class="route-info">
+                                <div class="route-type">🚗 Autolla</div>
+                                <div class="route-time">${res.drive.durationMin}<span>min</span> <span class="route-dist">${res.drive.distanceKm} km</span></div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: 0%; background: ${evalDrive.color}" data-target="${evalDrive.percent}%"></div>
+                            </div>
+                            <div class="route-details">
+                                <span style="color: var(--text-muted)">Raja: ${dest.thresholds.drive} min</span>
+                                <span class="status-badge" style="color: ${evalDrive.color}; border: 1px solid ${evalDrive.color}">${evalDrive.text}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    driveHtml = `<div class="route-row"><div class="route-type">🚗 Autolla: Ei reittiä</div></div>`;
+                }
+
+                // Transit
+                let transitHtml = '';
+                if (res.transit.available) {
+                    const evalTransit = evaluateStatus(res.transit.durationMin, dest.thresholds.transit);
+                    
+                    const icons = { BUS: '🚌', SUBWAY: '🚇', RAIL: '🚆', TRAM: '🚊', HEAVY_RAIL: '🚆', COMMUTER_TRAIN: '🚆' };
+                    const steps = res.transit.transitSteps;
+                    let stepsHtml = steps.map(s => `${icons[s.type] || '🚌'} ${s.name}`).join(' → ');
+                    if (!stepsHtml) stepsHtml = '🚶 Kävely';
+                    const transfers = Math.max(0, steps.length - 1);
+                    const transferText = transfers === 0 ? 'Suora yhteys' : transfers === 1 ? '1 vaihto' : `${transfers} vaihtoa`;
+                    stepsHtml += ` <span style="color:var(--text-muted); font-size:0.8rem">• ${transferText}</span>`;
+
+                    transitHtml = `
+                        <div class="route-row">
+                            <div class="route-info">
+                                <div class="route-type">🚌 Julkisilla</div>
+                                <div class="route-time">${res.transit.durationMin}<span>min</span> <span class="route-dist">${res.transit.distanceKm} km</span></div>
+                            </div>
+                            <div class="progress-container">
+                                <div class="progress-bar" style="width: 0%; background: ${evalTransit.color}" data-target="${evalTransit.percent}%"></div>
+                            </div>
+                            <div class="route-details">
+                                <div class="transit-steps">${stepsHtml}</div>
+                                <span class="status-badge" style="color: ${evalTransit.color}; border: 1px solid ${evalTransit.color}">${evalTransit.text}</span>
+                            </div>
+                        </div>
+                    `;
+                } else {
+                    transitHtml = `<div class="route-row"><div class="route-type">🚌 Julkisilla: Ei reittiä</div></div>`;
+                }
+
+                const card = document.createElement('div');
+                card.className = 'result-card';
+                card.style.borderLeft = `4px solid ${dest.color}`;
+                card.style.animationDelay = `${index * 0.1}s`;
+                
+                card.innerHTML = `
+                    <div class="card-header">
+                        <div class="person-name">${dest.emoji} ${dest.name}</div>
+                        <a href="https://www.google.com/maps/dir/?api=1&origin=${encodeURIComponent(origin.address)}&destination=${encodeURIComponent(dest.address)}" target="_blank" class="person-address">
+                            ${dest.address.split(',')[0]} ↗
+                        </a>
+                    </div>
+                    ${driveHtml}
+                    ${transitHtml}
+                `;
+                
+                panel.appendChild(card);
+            });
+
+            // Trigger progress bar animations after a short delay
+            setTimeout(() => {
+                document.querySelectorAll('.progress-bar').forEach(bar => {
+                    bar.style.width = bar.getAttribute('data-target');
+                });
+            }, 100);
+        }
+
+        function drawPolylines(results, origin) {
+            results.forEach(res => {
+                if (res.drive.available && res.drive.polyline) {
+                    const path = google.maps.geometry.encoding.decodePath(res.drive.polyline);
+                    const polyline = new google.maps.Polyline({
+                        path: path,
+                        geodesic: false,
+                        strokeColor: res.dest.color,
+                        strokeOpacity: 0.85,
+                        strokeWeight: 5,
+                        map: map
+                    });
+                    polylines.push(polyline);
+                }
+            });
+        }
+
+        function clearPolylines() {
+            polylines.forEach(p => p.setMap(null));
+            polylines = [];
+        }
+
+        function updateSummary(results) {
+            let driveOk = 0;
+            let transitOk = 0;
+
+            results.forEach(res => {
+                if (res.drive.available && res.drive.durationMin <= res.dest.thresholds.drive) driveOk++;
+                if (res.transit.available && res.transit.durationMin <= res.dest.thresholds.transit) transitOk++;
+            });
+
+            document.getElementById('summary-drive').innerHTML = `🚗 ${driveOk}/4 OK`;
+            document.getElementById('summary-transit').innerHTML = `🚌 ${transitOk}/4 OK`;
+
+            const totalOk = driveOk + transitOk;
+            let summaryText = '';
+            let summaryColor = '';
+
+            if (totalOk >= 7) {
+                summaryText = '🟢 Erinomainen sijainti!';
+                summaryColor = 'var(--color-green)';
+            } else if (totalOk >= 4) {
+                summaryText = '🟡 Hyvä sijainti, muutama haaste';
+                summaryColor = 'var(--color-orange)';
+            } else {
+                summaryText = '🔴 Sijainti haastava, harkitse tarkkaan';
+                summaryColor = 'var(--color-red)';
+            }
+
+            const totalEl = document.getElementById('summary-total');
+            totalEl.textContent = summaryText;
+            totalEl.style.color = summaryColor;
+
+            document.getElementById('summary-bar').classList.add('visible');
+        }
+
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('visible');
+            setTimeout(() => {
+                toast.classList.remove('visible');
+            }, 4000);
+        }
+
+        // Init
+        window.addEventListener('load', checkApiKey);
+    </script>
+</body>
+</html>
