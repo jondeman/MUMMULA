@@ -1166,12 +1166,24 @@
             return results;
         }
 
+        function getNextTuesday14() {
+            const now = new Date();
+            const day = now.getDay();
+            const daysUntilTue = (2 - day + 7) % 7 || 7;
+            const tue = new Date(now);
+            tue.setDate(now.getDate() + daysUntilTue);
+            tue.setHours(14, 0, 0, 0);
+            return tue.toISOString();
+        }
+
         async function fetchRoute(origin, dest, mode) {
             const url = 'https://routes.googleapis.com/directions/v2:computeRoutes';
+            const departureTime = getNextTuesday14();
             const body = {
                 origin: { location: { latLng: { latitude: origin.lat, longitude: origin.lng } } },
                 destination: { location: { latLng: { latitude: dest.lat, longitude: dest.lng } } },
                 travelMode: mode,
+                departureTime,
                 ...(mode === 'DRIVE'
                     ? { routingPreference: 'TRAFFIC_AWARE' }
                     : mode === 'TRANSIT'
