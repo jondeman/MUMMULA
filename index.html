@@ -1400,23 +1400,63 @@
         }
 
         // --- PALVELUT ---
-        function fetchNearbyPlace(lat, lng, type, radiusMeters) {
+        function fetchNearbyPlace(lat, lng, options) {
             return new Promise((resolve, reject) => {
+                const {
+                    type,
+                    radiusMeters,
+                    keyword,
+                    rankByDistance = false,
+                    maxDistanceMeters
+                } = options || {};
+
                 const service = new google.maps.places.PlacesService(document.createElement('div'));
-                service.nearbySearch({
+                const request = {
                     location: { lat, lng },
-                    radius: radiusMeters,
-                    type: type
-                }, (results, status) => {
+                    ...(type ? { type } : {}),
+                    ...(keyword ? { keyword } : {})
+                };
+
+                if (rankByDistance) {
+                    request.rankBy = google.maps.places.RankBy.DISTANCE;
+                } else {
+                    request.radius = radiusMeters;
+                }
+
+                const originLatLng = new google.maps.LatLng(lat, lng);
+
+                service.nearbySearch(request, (results, status) => {
                     if (status === google.maps.places.PlacesServiceStatus.OK && results.length > 0) {
-                        const place = results[0];
+                        let ranked = results
+                            .filter(place => place.geometry?.location)
+                            .map(place => ({
+                                place,
+                                distanceMeters: google.maps.geometry.spherical.computeDistanceBetween(
+                                    originLatLng,
+                                    place.geometry.location
+                                )
+                            }))
+                            .sort((a, b) => a.distanceMeters - b.distanceMeters);
+
+                        if (typeof maxDistanceMeters === 'number') {
+                            ranked = ranked.filter(item => item.distanceMeters <= maxDistanceMeters);
+                        }
+
+                        if (!ranked.length) {
+                            resolve(null);
+                            return;
+                        }
+
+                        const selected = ranked[0];
+                        const place = selected.place;
                         resolve({
                             displayName: { text: place.name },
                             formattedAddress: place.vicinity,
                             location: {
                                 latitude: place.geometry.location.lat(),
                                 longitude: place.geometry.location.lng()
-                            }
+                            },
+                            distanceMeters: selected.distanceMeters
                         });
                     } else if (status === google.maps.places.PlacesServiceStatus.ZERO_RESULTS) {
                         resolve(null);
@@ -1443,10 +1483,85 @@
 
         async function fetchPalvelut(origin) {
             try {
-                const [grocery, health] = await Promise.all([
-                    fetchNearbyPlace(origin.lat, origin.lng, 'supermarket', 3000),
-                    fetchNearbyPlace(origin.lat, origin.lng, 'hospital', 5000)
+                const grocerySearches = [
+                    {
+                        options: {
+                            type: 'supermarket',
+                            rankByDistance: true,
+                            maxDistanceMeters: 8000
+                        }
+                    },
+                    {
+                        options: {
+                            type: 'convenience_store',
+                            rankByDistance: true,
+                            maxDistanceMeters: 8000
+                        }
+                    },
+                    {
+                        options: {
+                            keyword: 'ruokakauppa',
+                            rankByDistance: true,
+                            maxDistanceMeters: 8000
+                        }
+                    }
+                ];
+
+                const groceryPromises = grocerySearches.map(async search => {
+                    try {
+                        return await fetchNearbyPlace(origin.lat, origin.lng, search.options);
+                    } catch (_) {
+                        return null;
+                    }
+                });
+
+                const healthSearches = [
+                    {
+                        label: 'Lähin terveysasema',
+                        options: {
+                            keyword: 'terveysasema',
+                            rankByDistance: true,
+                            maxDistanceMeters: 8000
+                        }
+                    },
+                    {
+                        label: 'Lähin terveyskeskus',
+                        options: {
+                            keyword: 'terveyskeskus',
+                            rankByDistance: true,
+                            maxDistanceMeters: 8000
+                        }
+                    },
+                    {
+                        label: 'Lähin sairaala',
+                        options: {
+                            type: 'hospital',
+                            rankByDistance: true,
+                            maxDistanceMeters: 8000
+                        }
+                    }
+                ];
+
+                const healthPromises = healthSearches.map(async search => {
+                    try {
+                        const place = await fetchNearbyPlace(origin.lat, origin.lng, search.options);
+                        return place ? { ...place, serviceLabel: search.label } : null;
+                    } catch (_) {
+                        return null;
+                    }
+                });
+
+                const [groceryMatches, healthMatches] = await Promise.all([
+                    Promise.all(groceryPromises),
+                    Promise.all(healthPromises)
                 ]);
+
+                const grocery = groceryMatches
+                    .filter(Boolean)
+                    .sort((a, b) => a.distanceMeters - b.distanceMeters)[0] || null;
+                const health = healthMatches
+                    .filter(Boolean)
+                    .sort((a, b) => a.distanceMeters - b.distanceMeters)[0] || null;
 
                 const servicePromises = [];
                 if (grocery) servicePromises.push(
@@ -1463,7 +1578,7 @@
                 if (health) servicePromises.push(
                     fetchServiceRoutes(origin, health.location).then(routes => ({
                         type: 'health',
-                        label: 'Lähin terveyskeskus',
+                        label: health.serviceLabel || 'Lähin terveyspalvelu',
                         icon: '🏥',
                         name: health.displayName?.text || 'Terveyskeskus',
                         address: health.formattedAddress || '',
