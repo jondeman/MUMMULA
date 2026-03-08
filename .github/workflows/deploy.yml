@@ -23,12 +23,6 @@ jobs:
           sed -i 's/__GOOGLE_MAPS_API_KEY__/${{ secrets.GOOGLE_MAPS_KEY }}/g' index.html
           sed -i 's/__APP_PASSWORD__/${{ secrets.APP_PASSWORD }}/g' index.html
 
-      - name: Verify injection
-        run: |
-          echo "APP_PASSWORD placeholder remaining: $(grep -c '__APP_PASSWORD__' index.html || true)"
-          echo "MAPS_KEY placeholder remaining: $(grep -c '__GOOGLE_MAPS_API_KEY__' index.html || true)"
-          echo "APP_PASSWORD length in file: $(grep -o "APP_PASSWORD = '[^']*'" index.html | head -1 | wc -c)"
-
       - name: Setup Pages
         uses: actions/configure-pages@v4
 

@@ -700,8 +700,6 @@
 
         function tryPassword() {
             const input = document.getElementById('password-input').value.trim();
-            console.log('[AUTH] input:', JSON.stringify(input), 'expected:', JSON.stringify(APP_PASSWORD), 'match:', input === APP_PASSWORD);
-            alert('DEBUG\nSyötetty: "' + input + '"\nOdotettu: "' + APP_PASSWORD + '"\nTäsmää: ' + (input === APP_PASSWORD));
             if (input === APP_PASSWORD) {
                 sessionStorage.setItem('auth', '1');
                 document.getElementById('api-modal').classList.remove('active');
