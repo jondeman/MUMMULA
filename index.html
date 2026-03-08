@@ -511,6 +511,32 @@
             100% { background-position: -200% 0; }
         }
 
+        /* Origin marker pulse animation */
+        .map-pulse {
+            width: 64px;
+            height: 64px;
+            border-radius: 50%;
+            border: 2px solid #00E5FF;
+            animation: mapPulse 2s ease-out infinite;
+            position: relative;
+            pointer-events: none;
+        }
+
+        .map-pulse::after {
+            content: '';
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            border-radius: 50%;
+            border: 2px solid #00E5FF;
+            animation: mapPulse 2s ease-out infinite;
+            animation-delay: 1s;
+        }
+
+        @keyframes mapPulse {
+            0%   { transform: scale(0.4); opacity: 0.9; }
+            100% { transform: scale(2.8); opacity: 0; }
+        }
+
         /* Palvelut Section */
         .section-header {
             display: flex;
@@ -803,6 +829,8 @@
         let markers = [];
         let polylines = [];
         let originMarker = null;
+        let pulseOverlay = null;
+        let PulseOverlay = null;
 
         // --- INITIALIZATION ---
         function checkApiKey() {
@@ -843,6 +871,34 @@
         }
 
         window.initApp = function() {
+            // Pulse overlay class (needs Google Maps to be loaded first)
+            PulseOverlay = class extends google.maps.OverlayView {
+                constructor(position) {
+                    super();
+                    this.position = new google.maps.LatLng(position.lat, position.lng);
+                    this.div = null;
+                }
+                onAdd() {
+                    this.div = document.createElement('div');
+                    this.div.style.cssText = 'position:absolute; pointer-events:none;';
+                    this.div.innerHTML = '<div class="map-pulse"></div>';
+                    this.getPanes().overlayLayer.appendChild(this.div);
+                }
+                draw() {
+                    const point = this.getProjection().fromLatLngToDivPixel(this.position);
+                    if (point) {
+                        this.div.style.left = (point.x - 32) + 'px';
+                        this.div.style.top  = (point.y - 32) + 'px';
+                    }
+                }
+                onRemove() {
+                    if (this.div && this.div.parentNode) {
+                        this.div.parentNode.removeChild(this.div);
+                        this.div = null;
+                    }
+                }
+            };
+
             // Init Map
             map = new google.maps.Map(document.getElementById('map'), {
                 center: { lat: 60.20, lng: 24.93 }, // Helsinki center
@@ -916,24 +972,33 @@
 
         function createOriginMarker() {
             const canvas = document.createElement('canvas');
-            canvas.width = 48;
-            canvas.height = 48;
+            canvas.width = 56;
+            canvas.height = 56;
             const ctx = canvas.getContext('2d');
-            
+
+            // Soft outer glow ring
             ctx.beginPath();
-            ctx.arc(24, 24, 20, 0, 2 * Math.PI);
-            ctx.fillStyle = '#FBBF24'; // Gold
-            ctx.fill();
-            ctx.strokeStyle = 'white';
-            ctx.lineWidth = 3;
+            ctx.arc(28, 28, 26, 0, 2 * Math.PI);
+            ctx.strokeStyle = 'rgba(0, 229, 255, 0.35)';
+            ctx.lineWidth = 7;
             ctx.stroke();
-            
-            ctx.fillStyle = '#000';
-            ctx.font = '24px Arial';
+
+            // White filled circle
+            ctx.beginPath();
+            ctx.arc(28, 28, 19, 0, 2 * Math.PI);
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fill();
+            ctx.strokeStyle = '#00E5FF';
+            ctx.lineWidth = 3.5;
+            ctx.stroke();
+
+            // Cyan star
+            ctx.fillStyle = '#0891B2';
+            ctx.font = 'bold 20px Arial';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText('★', 24, 24);
-            
+            ctx.fillText('★', 28, 28);
+
             return canvas.toDataURL();
         }
 
@@ -1029,6 +1094,8 @@
         async function runSearch(origin) {
             // Update Map
             if (originMarker) originMarker.setMap(null);
+            if (pulseOverlay) { pulseOverlay.setMap(null); pulseOverlay = null; }
+
             originMarker = new google.maps.Marker({
                 position: origin,
                 map: map,
@@ -1036,6 +1103,9 @@
                 title: 'Haettu osoite',
                 zIndex: 100
             });
+
+            pulseOverlay = new PulseOverlay(origin);
+            pulseOverlay.setMap(map);
 
             clearPolylines();
 
