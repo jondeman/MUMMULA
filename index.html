@@ -700,7 +700,9 @@
 
         function tryPassword() {
             const input = document.getElementById('password-input').value.trim();
-            if (input === APP_PASSWORD) {
+            const expected = APP_PASSWORD.trim();
+            console.log('[AUTH] input:', JSON.stringify(input), 'expected:', JSON.stringify(expected), 'match:', input === expected);
+            if (input === expected) {
                 sessionStorage.setItem('auth', '1');
                 document.getElementById('api-modal').classList.remove('active');
                 loadGoogleMaps();
